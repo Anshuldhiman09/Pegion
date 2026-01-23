@@ -1,0 +1,8 @@
+import React from 'react';
+import { View, Text } from 'react-native';
+
+export default () => (
+  <View style={{ padding: 20 }}>
+    <Text>FAQs, Contact support</Text>
+  </View>
+);
