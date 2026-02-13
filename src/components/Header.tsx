@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  Image,
 } from 'react-native';
 import MenuModal from '../screens/menu/MenuModal';
 
@@ -15,10 +16,9 @@ interface Props {
   showMenu?: boolean;
   showSearch?: boolean;
   onSearch?: () => void;
-
   showEdit?: boolean;
   onEditPress?: () => void;
-  menuType?: 'chat' | 'profile';
+  menuType?: 'chat' | 'profile' | 'status';
 }
 
 const Header: React.FC<Props> = ({
@@ -39,7 +39,6 @@ const Header: React.FC<Props> = ({
       <StatusBar backgroundColor="#0B1C26" barStyle="light-content" />
 
       <View style={styles.container}>
-        {/* LEFT */}
         <View style={styles.left}>
           {showBack && navigation ? (
             <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -50,17 +49,13 @@ const Header: React.FC<Props> = ({
           )}
         </View>
 
-        {/* RIGHT */}
         <View style={styles.right}>
-          {showEdit && onEditPress && (
-            <TouchableOpacity onPress={onEditPress}>
-              <Text style={styles.editText}>Edit</Text>
-            </TouchableOpacity>
-          )}
-
           {showSearch && onSearch && (
             <TouchableOpacity onPress={onSearch}>
-              <Text style={styles.actionSearch}>Search</Text>
+              <Image
+                source={require('../assets/icons/search.png')}
+                style={styles.searchIcon}
+              />
             </TouchableOpacity>
           )}
 
@@ -89,7 +84,7 @@ export default Header;
 const styles = StyleSheet.create({
   container: {
     height: 60,
-    backgroundColor: '#799e9e',
+    backgroundColor: '#7b7f85',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -99,15 +94,9 @@ const styles = StyleSheet.create({
   left: { flexDirection: 'row', alignItems: 'center' },
   right: { flexDirection: 'row', alignItems: 'center', gap: 16 },
 
-  title: { fontSize: 26, fontWeight: '700', color: '#fff' },
+  title: { fontSize: 26, fontWeight: '700', color: '#f5f6f7' },
   backText: { fontSize: 16, color: '#fff' },
 
-  editText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-
-  actionSearch: { fontSize: 16, color: '#fff' },
+  searchIcon: { width: 22, height: 22 },
   actionText: { fontSize: 28, color: '#fff' },
 });

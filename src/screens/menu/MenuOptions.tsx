@@ -10,7 +10,7 @@ import LogoutConfirm from './LogoutConfirm';
 interface Props {
   navigation: any;
   onClose: () => void;
-  menuType?: 'chat' | 'profile';
+  menuType?: 'chat' | 'profile' | 'status'; // ✅ ADD status
 }
 
 const MenuOptions: React.FC<Props> = ({
@@ -35,7 +35,15 @@ const MenuOptions: React.FC<Props> = ({
         </TouchableOpacity>
       </View>
 
-      {/* CHAT MENU */}
+      {/* ================= STATUS MENU ================= */}
+      {menuType === 'status' && (
+        <MenuItem
+          title="Settings"
+          onPress={() => goToSettings('SettingsHome')}
+        />
+      )}
+
+      {/* ================= CHAT MENU ================= */}
       {menuType === 'chat' && (
         <>
           <MenuItem
@@ -57,10 +65,18 @@ const MenuOptions: React.FC<Props> = ({
             title="Help"
             onPress={() => goToSettings('HelpAndSupport')}
           />
+
+          <View style={styles.divider} />
+
+          <MenuItem
+            title="Logout"
+            danger
+            onPress={() => setLogoutVisible(true)}
+          />
         </>
       )}
 
-      {/* PROFILE MENU */}
+      {/* ================= PROFILE MENU ================= */}
       {menuType === 'profile' && (
         <>
           <MenuItem
@@ -77,17 +93,16 @@ const MenuOptions: React.FC<Props> = ({
             title="Settings"
             onPress={() => goToSettings('SettingsHome')}
           />
+
+          <View style={styles.divider} />
+
+          <MenuItem
+            title="Logout"
+            danger
+            onPress={() => setLogoutVisible(true)}
+          />
         </>
       )}
-
-      <View style={styles.divider} />
-
-      {/* LOGOUT */}
-      <MenuItem
-        title="Logout"
-        danger
-        onPress={() => setLogoutVisible(true)}
-      />
 
       <LogoutConfirm
         visible={logoutVisible}

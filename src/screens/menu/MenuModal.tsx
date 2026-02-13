@@ -13,7 +13,7 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   navigation: any;
-  menuType?: 'chat' | 'profile';
+  menuType?: 'chat' | 'profile' | 'status';
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -39,17 +39,12 @@ const MenuModal: React.FC<Props> = ({
 
   return (
     <Modal transparent visible={visible} animationType="none">
-      {/* Overlay */}
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay} />
       </TouchableWithoutFeedback>
 
-      {/* Sliding Menu */}
       <Animated.View
-        style={[
-          styles.menuContainer,
-          { transform: [{ translateX }] },
-        ]}
+        style={[styles.menuContainer, { transform: [{ translateX }] }]}
       >
         <MenuOptions
           navigation={navigation}

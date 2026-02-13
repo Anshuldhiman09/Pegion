@@ -7,6 +7,7 @@ import {
   FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import Header from '../../components/Header';
 
 const dummyStatus = [
@@ -16,6 +17,12 @@ const dummyStatus = [
 ];
 
 const StatusHome = () => {
+  const navigation = useNavigation();
+
+  const onSearchPress = () => {
+    console.log('Search pressed');
+  };
+
   const renderItem = ({ item }: any) => (
     <TouchableOpacity style={styles.statusItem}>
       <View style={styles.avatar} />
@@ -28,12 +35,20 @@ const StatusHome = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="Status" />
+      <Header
+        title="Status"
+        navigation={navigation}
+        showSearch
+        onSearch={onSearchPress}
+        showMenu
+        menuType="status" // 👈 ONLY SETTINGS MENU
+      />
 
       <FlatList
         data={dummyStatus}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
 
       <TouchableOpacity style={styles.fab}>
@@ -54,13 +69,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
+
   avatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#ddd',
+    backgroundColor: '#d9d9d9',
     marginRight: 14,
   },
+
   name: { fontSize: 17, fontWeight: '600', color: '#000' },
   time: { fontSize: 14, color: '#666', marginTop: 2 },
 
@@ -74,6 +91,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#799e9e',
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 5,
   },
+
   fabText: { fontSize: 28, color: '#fff' },
 });

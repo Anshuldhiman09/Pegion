@@ -14,8 +14,9 @@ const SignupScreen = () => {
   const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
   
-const isValidEmail = (value: string) => {
-  return /^[^\s@]+@gmail\.com$/.test(value);
+const isValidEmail = (email: string) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  return emailRegex.test(email);
 };
 
 

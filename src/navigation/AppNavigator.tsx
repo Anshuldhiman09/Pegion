@@ -23,6 +23,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Main" component={MainNavigator} />
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />
+        
       )}
     </Stack.Navigator>
   );

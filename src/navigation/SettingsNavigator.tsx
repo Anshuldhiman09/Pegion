@@ -3,9 +3,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import SettingsHome from '../screens/settings/SettingsHome';
 import AccountSettings from '../screens/settings/AccountSettings';
-import PrivacyAndSecurity from '../screens/settings/PrivacyAndSecurity';
+import PrivacyAndSecurity from '../screens/settings/Privacy';
 import Notifications from '../screens/settings/Notifications';
 import HelpAndSupport from '../screens/settings/HelpAndSupport';
+import Privacy from '../screens/settings/Privacy';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,9 +24,9 @@ const SettingsNavigator = () => {
         options={{ title: 'Account' }}
       />
       <Stack.Screen
-        name="PrivacyAndSecurity"
-        component={PrivacyAndSecurity}
-        options={{ title: 'Privacy & Security' }}
+        name="Privacy"
+        component={Privacy}
+        options={{ title: 'Privacy ' }}
       />
       <Stack.Screen
         name="Notifications"

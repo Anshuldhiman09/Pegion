@@ -20,6 +20,10 @@ type AuthContextType = {
   logout: () => Promise<void>;
 };
 
+const getNameFromEmail = (email: string) => {
+  return email.split('@')[0];
+};
+
 export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isLoading: true,
@@ -44,6 +48,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const storedUser = await AsyncStorage.getItem('auth_user');
 
         if (token && storedUser) {
+           const parsedUser: User = JSON.parse(storedUser);
+
+  if (!parsedUser.name && parsedUser.email) {
+    parsedUser.name = getNameFromEmail(parsedUser.email);
+    await AsyncStorage.setItem('auth_user', JSON.stringify(parsedUser));
+  }
           setUser(JSON.parse(storedUser));
           setIsAuthenticated(true);
         }
@@ -59,8 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // 🔐 Login
   const login = async (token: string, email: string) => {
+    const defaultName = getNameFromEmail(email);
     const newUser: User = {
-      name: '',
+      name: defaultName ,
       email,
       isProfileSetup: false,
     };
