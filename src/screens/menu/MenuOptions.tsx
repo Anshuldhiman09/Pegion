@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import LogoutConfirm from './LogoutConfirm';
+import { useTheme } from '../../theme';
 
 interface Props {
   navigation: any;
   onClose: () => void;
-  menuType?: 'chat' | 'profile' | 'status'; // ✅ ADD status
+  menuType?: 'chat' | 'profile' | 'status';
 }
 
 const MenuOptions: React.FC<Props> = ({
@@ -18,6 +14,7 @@ const MenuOptions: React.FC<Props> = ({
   onClose,
   menuType = 'chat',
 }) => {
+  const { colors } = useTheme();
   const [logoutVisible, setLogoutVisible] = useState(false);
 
   const goToSettings = (screen: string) => {
@@ -26,12 +23,12 @@ const MenuOptions: React.FC<Props> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
       {/* MENU HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Menu</Text>
-        <TouchableOpacity onPress={onClose}>
-          <Text style={styles.close}>✕</Text>
+      <View style={[styles.header, { borderBottomColor: colors.divider }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Menu</Text>
+        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={[styles.close, { color: colors.textSecondary }]}>✕</Text>
         </TouchableOpacity>
       </View>
 
@@ -39,6 +36,7 @@ const MenuOptions: React.FC<Props> = ({
       {menuType === 'status' && (
         <MenuItem
           title="Settings"
+          colors={colors}
           onPress={() => goToSettings('SettingsHome')}
         />
       )}
@@ -48,6 +46,7 @@ const MenuOptions: React.FC<Props> = ({
         <>
           <MenuItem
             title="Profile"
+            colors={colors}
             onPress={() => {
               onClose();
               navigation.navigate('Profile', {
@@ -57,19 +56,31 @@ const MenuOptions: React.FC<Props> = ({
           />
 
           <MenuItem
+            title="Connection Requests"
+            colors={colors}
+            onPress={() => {
+              onClose();
+              navigation.navigate('Notifications');
+            }}
+          />
+
+          <MenuItem
             title="Settings"
+            colors={colors}
             onPress={() => goToSettings('SettingsHome')}
           />
 
           <MenuItem
             title="Help"
+            colors={colors}
             onPress={() => goToSettings('HelpAndSupport')}
           />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.divider }]} />
 
           <MenuItem
             title="Logout"
+            colors={colors}
             danger
             onPress={() => setLogoutVisible(true)}
           />
@@ -81,6 +92,7 @@ const MenuOptions: React.FC<Props> = ({
         <>
           <MenuItem
             title="Edit Profile"
+            colors={colors}
             onPress={() => {
               onClose();
               navigation.navigate('Profile', {
@@ -91,13 +103,15 @@ const MenuOptions: React.FC<Props> = ({
 
           <MenuItem
             title="Settings"
+            colors={colors}
             onPress={() => goToSettings('SettingsHome')}
           />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.divider }]} />
 
           <MenuItem
             title="Logout"
+            colors={colors}
             danger
             onPress={() => setLogoutVisible(true)}
           />
@@ -119,14 +133,22 @@ export default MenuOptions;
 const MenuItem = ({
   title,
   onPress,
+  colors,
   danger = false,
 }: {
   title: string;
   onPress: () => void;
+  colors: any;
   danger?: boolean;
 }) => (
-  <TouchableOpacity style={styles.option} onPress={onPress}>
-    <Text style={[styles.text, danger && styles.danger]}>
+  <TouchableOpacity style={styles.option} onPress={onPress} activeOpacity={0.7}>
+    <Text
+      style={[
+        styles.text,
+        { color: danger ? colors.danger : colors.text },
+        danger && styles.danger,
+      ]}
+    >
       {title}
     </Text>
   </TouchableOpacity>
@@ -137,39 +159,38 @@ const MenuItem = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    paddingTop: 20,
   },
   header: {
     height: 60,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   close: {
-    fontSize: 22,
+    fontSize: 20,
+    fontWeight: '600',
   },
   option: {
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: 20,
   },
   text: {
-    fontSize: 16,
-    color: '#111',
+    fontSize: 15,
+    fontWeight: '500',
   },
   danger: {
-    color: '#D32F2F',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   divider: {
     height: 1,
-    backgroundColor: '#eee',
     marginVertical: 8,
   },
 });
+

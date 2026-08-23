@@ -1,0 +1,23 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "gradle.nestedProjects": [
+        "android"
+    ],
+    "java.import.gradle.wrapper.enabled": true,
+    "java.import.exclusions": [
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/ios/**",
+        "**/android/build/**",
+        "**/android/app/build/**"
+    ],
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/android/.gradle/**": true,
+        "**/android/build/**": true,
+        "**/android/app/build/**": true
+    }
+}

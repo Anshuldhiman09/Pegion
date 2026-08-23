@@ -6,8 +6,12 @@ import {
   TouchableOpacity,
   StatusBar,
   Image,
+  Platform,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import MenuModal from '../screens/menu/MenuModal';
+import { useTheme, getNeumorphicStyles } from '../theme';
+import FocusAwareStatusBar from './FocusAwareStatusBar';
 
 interface Props {
   title: string;
@@ -33,35 +37,71 @@ const Header: React.FC<Props> = ({
   menuType = 'chat',
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
+  const { colors, isDark } = useTheme();
+  const neu = getNeumorphicStyles(isDark);
 
   return (
     <>
-      <StatusBar backgroundColor="#0B1C26" barStyle="light-content" />
+      <FocusAwareStatusBar
+        backgroundColor={colors.statusBg}
+        barStyle={colors.statusBar}
+        translucent={false}
+      />
 
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
         <View style={styles.left}>
-          {showBack && navigation ? (
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-          ) : (
-            <Text style={styles.title}>{title}</Text>
-          )}
-        </View>
-
-        <View style={styles.right}>
-          {showSearch && onSearch && (
-            <TouchableOpacity onPress={onSearch}>
-              <Image
-                source={require('../assets/icons/search.png')}
-                style={styles.searchIcon}
+          {showBack && navigation && (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={[styles.backBtn, neu.circleButton(38, { depth: 'low' })]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
+                size={20}
+                color={colors.text}
               />
             </TouchableOpacity>
           )}
 
           {showMenu && navigation && (
-            <TouchableOpacity onPress={() => setMenuVisible(true)}>
-              <Text style={styles.actionText}>⋮</Text>
+            <TouchableOpacity
+              onPress={() => setMenuVisible(true)}
+              style={[styles.menuBtn, neu.circleButton(38, { depth: 'low' })]}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="menu" size={20} color={colors.text} />
+            </TouchableOpacity>
+          )}
+
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        </View>
+
+        <View style={styles.right}>
+          {showEdit && onEditPress && (
+            <TouchableOpacity
+              onPress={onEditPress}
+              style={[styles.actionBtn, neu.circleButton(38, { depth: 'low' })]}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="pencil" size={18} color={colors.text} />
+            </TouchableOpacity>
+          )}
+          {showSearch && onSearch && (
+            <TouchableOpacity
+              onPress={onSearch}
+              style={[styles.actionBtn, neu.circleButton(38, { depth: 'low' })]}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="search" size={18} color={colors.text} />
             </TouchableOpacity>
           )}
         </View>
@@ -83,20 +123,19 @@ export default Header;
 
 const styles = StyleSheet.create({
   container: {
-    height: 60,
-    backgroundColor: '#7b7f85',
+    height: 62,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    elevation: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  left: { flexDirection: 'row', alignItems: 'center' },
-  right: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  left: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  right: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 
-  title: { fontSize: 26, fontWeight: '700', color: '#f5f6f7' },
-  backText: { fontSize: 16, color: '#fff' },
-
-  searchIcon: { width: 22, height: 22 },
-  actionText: { fontSize: 28, color: '#fff' },
+  title: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  backBtn: { marginRight: 2 },
+  menuBtn: { marginRight: 2 },
+  actionBtn: {},
 });
+

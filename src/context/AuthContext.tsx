@@ -1,13 +1,18 @@
 import React, { createContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { userService } from '../api';
+import SocketService from '../services/SocketService';
 
 export type User = {
+  id?: number | string;
   name: string;
+  username: string;
   email: string;
-  phone?: string;
-  bio?: string;
-  gender?: string;
+  bio?: string | null;
+  dob?: string | null;
+  gender?: string | null;
   photo?: string | null;
+  profileImageUrl?: string | null;
   isProfileSetup: boolean;
 };
 
@@ -15,14 +20,18 @@ type AuthContextType = {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
-  login: (token: string, email: string) => Promise<void>;
-  updateProfile: (data: Partial<User>) => Promise<void>;
+  login: (
+    token: string,
+    email: string,
+    newUser?: boolean,
+    username?: string | null,
+    name?: string | null,
+  ) => Promise<void>;
+  updateProfile: (data: Partial<User>) => void;
   logout: () => Promise<void>;
 };
 
-const getNameFromEmail = (email: string) => {
-  return email.split('@')[0];
-};
+const getNameFromEmail = (email: string) => email.split('@')[0];
 
 export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
@@ -40,22 +49,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
 
-  // 🔁 Restore auth + user on app start
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = await AsyncStorage.getItem('auth_token');
-        const storedUser = await AsyncStorage.getItem('auth_user');
+        const token =
+          (await AsyncStorage.getItem('auth_token')) ||
+          (await AsyncStorage.getItem('authToken'));
+        const email = await AsyncStorage.getItem('auth_email');
 
-        if (token && storedUser) {
-           const parsedUser: User = JSON.parse(storedUser);
+        if (token && email) {
+          try {
+            const result = await userService.getProfileInfo(email);
+            const data = result?.data;
 
-  if (!parsedUser.name && parsedUser.email) {
-    parsedUser.name = getNameFromEmail(parsedUser.email);
-    await AsyncStorage.setItem('auth_user', JSON.stringify(parsedUser));
-  }
-          setUser(JSON.parse(storedUser));
-          setIsAuthenticated(true);
+            if (result?.success && data) {
+              const isProfileComplete = Boolean(data.name && data.username);
+              const userData: User = {
+                id: data.id,
+                name: data.name || getNameFromEmail(email),
+                username: data.username || '',
+                email: data.email || email,
+                bio: data.description || data.bio || null,
+                dob: data.dateOfBirth || data.dob || null,
+                gender: data.gender || null,
+                photo: data.profileImageUrl || data.photo || null,
+                profileImageUrl: data.profileImageUrl || data.photo || null,
+                isProfileSetup: isProfileComplete,
+              };
+
+              if (data.id) {
+                await AsyncStorage.setItem('userId', String(data.id));
+              }
+              await AsyncStorage.setItem('authToken', token);
+              await AsyncStorage.setItem('auth_token', token);
+
+              setUser(userData);
+              setIsAuthenticated(true);
+            } else {
+              SocketService.disconnect();
+              await AsyncStorage.multiRemove([
+                'auth_token',
+                'authToken',
+                'auth_email',
+                'userId',
+                'profile_setup_shown',
+              ]);
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+          } catch (fetchErr: any) {
+            console.log(
+              'Profile restore error:',
+              fetchErr?.message || fetchErr,
+            );
+            const errMsg = String(fetchErr?.message || '');
+            if (
+              errMsg.toLowerCase().includes('token') ||
+              errMsg.toLowerCase().includes('401') ||
+              errMsg.toLowerCase().includes('unauthorized')
+            ) {
+              SocketService.disconnect();
+              await AsyncStorage.multiRemove([
+                'auth_token',
+                'authToken',
+                'auth_email',
+                'userId',
+                'profile_setup_shown',
+              ]);
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+          }
         }
       } catch (err) {
         console.log('Auth restore error:', err);
@@ -67,36 +131,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     checkAuth();
   }, []);
 
-  // 🔐 Login
-  const login = async (token: string, email: string) => {
-    const defaultName = getNameFromEmail(email);
-    const newUser: User = {
-      name: defaultName ,
+  // Login
+  const login = async (
+    token: string,
+    email: string,
+    newUser: boolean = false,
+    username?: string | null,
+    name?: string | null,
+  ) => {
+    // Teardown any previous user socket session
+    SocketService.disconnect();
+
+    const base = name || getNameFromEmail(email);
+    const hasUsername = Boolean(username && username.trim().length > 0);
+
+    const userData: User = {
+      name: base,
+      username: username || '',
       email,
-      isProfileSetup: false,
+      isProfileSetup: !newUser && hasUsername,
     };
 
     await AsyncStorage.setItem('auth_token', token);
-    await AsyncStorage.setItem('auth_user', JSON.stringify(newUser));
+    await AsyncStorage.setItem('authToken', token);
+    await AsyncStorage.setItem('auth_email', email);
 
-    setUser(newUser);
+    try {
+      const profileResult = await userService.getProfileInfo(email);
+      if (profileResult?.data?.id) {
+        userData.id = profileResult.data.id;
+        await AsyncStorage.setItem('userId', String(profileResult.data.id));
+      }
+    } catch {
+      // Ignored if profile fetch fails
+    }
+
+    setUser(userData);
     setIsAuthenticated(true);
   };
 
-  // ✏️ Update profile + persist
-  const updateProfile = async (data: Partial<User>) => {
-    setUser(prev => {
-      if (!prev) return prev;
+  // Update profile
+  const updateProfile = (data: Partial<User>) => {
+    if (!user) {
+      return;
+    }
 
-      const updatedUser = { ...prev, ...data };
-      AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
-      return updatedUser;
+    setUser({
+      ...user,
+      ...data,
+      isProfileSetup: true,
     });
   };
 
-  // 🚪 Logout
+  // Logout
   const logout = async () => {
-    await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
+    // Teardown socket connection immediately
+    SocketService.disconnect();
+
+    await AsyncStorage.multiRemove([
+      'auth_token',
+      'authToken',
+      'auth_email',
+      'userId',
+      'profile_setup_shown',
+      'search_history',
+    ]);
     setUser(null);
     setIsAuthenticated(false);
   };

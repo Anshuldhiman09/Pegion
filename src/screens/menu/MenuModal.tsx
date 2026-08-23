@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import MenuOptions from './MenuOptions';
+import { useTheme } from '../../theme';
 
 interface Props {
   visible: boolean;
@@ -25,17 +26,20 @@ const MenuModal: React.FC<Props> = ({
   navigation,
   menuType = 'chat',
 }) => {
-  const translateX = useRef(new Animated.Value(MENU_WIDTH)).current;
+  const { colors } = useTheme();
+  const translateX = useRef(new Animated.Value(-MENU_WIDTH)).current;
 
   useEffect(() => {
     Animated.timing(translateX, {
-      toValue: visible ? 0 : MENU_WIDTH,
+      toValue: visible ? 0 : -MENU_WIDTH,
       duration: 250,
       useNativeDriver: true,
     }).start();
-  }, [visible]);
+  }, [visible, translateX]);
 
-  if (!visible) return null;
+  if (!visible) {
+    return null;
+  }
 
   return (
     <Modal transparent visible={visible} animationType="none">
@@ -44,7 +48,14 @@ const MenuModal: React.FC<Props> = ({
       </TouchableWithoutFeedback>
 
       <Animated.View
-        style={[styles.menuContainer, { transform: [{ translateX }] }]}
+        style={[
+          styles.menuContainer,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            transform: [{ translateX }],
+          },
+        ]}
       >
         <MenuOptions
           navigation={navigation}
@@ -61,15 +72,18 @@ export default MenuModal;
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   menuContainer: {
     position: 'absolute',
-    right: 0,
+    left: 0,
     top: 0,
     bottom: 0,
     width: MENU_WIDTH,
-    backgroundColor: '#fff',
-    elevation: 10,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
 });
+
