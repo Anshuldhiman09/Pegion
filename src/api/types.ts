@@ -80,3 +80,17 @@ export interface PageableResponse<T> {
     unpaged?: boolean;
   };
 }
+
+export interface CallResponseDto {
+  id: number;
+  callerId: number;
+  callerName?: string;
+  receiverId: number;
+  receiverName?: string;
+  callType: 'AUDIO' | 'VIDEO' | string;
+  status?: string;
+  startedAt?: string;
+  endedAt?: string;
+  createdAt?: string;
+}
+
