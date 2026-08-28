@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,57 +11,76 @@ import {
   SafeAreaView,
   StatusBar,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme, getNeumorphicStyles } from '../../theme';
+import { useCall } from '../../context/CallContext';
+import { useAuth } from '../../context/AuthContext';
+import { callApiService, CallResponseDto } from '../../api';
 import FocusAwareStatusBar from '../../components/FocusAwareStatusBar';
 
 const defaultUser = require('../../assets/icons/user.png');
 const appLogo = require('../../assets/images/pegion.png');
 
-interface CallRecord {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-  type: 'voice' | 'video';
-  time: string;
-  direction: 'incoming' | 'outgoing' | 'missed';
-}
+const formatCallTime = (dateStr?: string): string => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
 
-const dummyCalls: CallRecord[] = [
-  {
-    id: '1',
-    name: 'Rahul Sharma',
-    type: 'voice',
-    time: 'Today, 10:30 AM',
-    direction: 'incoming',
-  },
-  {
-    id: '2',
-    name: 'Ankit Verma',
-    type: 'video',
-    time: 'Yesterday, 8:15 PM',
-    direction: 'outgoing',
-  },
-  {
-    id: '3',
-    name: 'Priya Singh',
-    type: 'voice',
-    time: 'Aug 20, 4:45 PM',
-    direction: 'missed',
-  },
-];
+  const now = new Date();
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear();
+
+  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (isToday) {
+    return `Today, ${timeStr}`;
+  } else if (isYesterday) {
+    return `Yesterday, ${timeStr}`;
+  } else {
+    const month = date.toLocaleDateString([], { month: 'short' });
+    const day = date.getDate();
+    return `${month} ${day}, ${timeStr}`;
+  }
+};
 
 const CallsHome = () => {
   const navigation = useNavigation<any>();
   const { colors, isDark } = useTheme();
   const neu = getNeumorphicStyles(isDark);
+  const { initiateCall } = useCall();
+  const { user } = useAuth();
 
-  const [calls, setCalls] = useState<CallRecord[]>(dummyCalls);
+  const [calls, setCalls] = useState<CallResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+
+  const fetchCalls = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
+    try {
+      const data = await callApiService.getAllCalls();
+      setCalls(data || []);
+    } catch (err) {
+      console.error('Failed to fetch call history:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,24 +88,88 @@ const CallsHome = () => {
         StatusBar.setTranslucent(false);
         StatusBar.setBackgroundColor(colors.statusBg, true);
       }
-    }, [colors.statusBg]),
+      fetchCalls();
+    }, [colors.statusBg, fetchCalls]),
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 600);
-  }, []);
+    fetchCalls(true);
+  }, [fetchCalls]);
+
+  const currentUserId = user?.id ? Number(user.id) : null;
 
   const filteredCalls = calls.filter(c => {
+    const isOutgoing = currentUserId !== null && Number(c.callerId) === currentUserId;
+    const name = isOutgoing ? c.receiverName || '' : c.callerName || '';
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
-    return c.name.toLowerCase().includes(q);
+    return name.toLowerCase().includes(q) || String(c.id).includes(q);
   });
 
-  const renderItem = ({ item }: { item: CallRecord }) => {
-    const isMissed = item.direction === 'missed';
+  const handleDeleteCall = (item: CallResponseDto) => {
+    const isOutgoing = currentUserId !== null && Number(item.callerId) === currentUserId;
+    const otherUserId = isOutgoing ? item.receiverId : item.callerId;
+    const otherUserName = isOutgoing
+      ? item.receiverName || `User #${item.receiverId}`
+      : item.callerName || `User #${item.callerId}`;
+
+    Alert.alert(
+      'Call Log Options',
+      `Manage call record for ${otherUserName}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete this record',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await callApiService.deleteCalls([item.id]);
+              setCalls(prev => prev.filter(c => c.id !== item.id));
+            } catch (e) {
+              Alert.alert('Error', 'Failed to delete call record');
+            }
+          },
+        },
+        {
+          text: `Delete all with ${otherUserName}`,
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await callApiService.deleteAllCallsForUser(otherUserId);
+              setCalls(prev =>
+                prev.filter(c =>
+                  isOutgoing
+                    ? Number(c.receiverId) !== Number(otherUserId)
+                    : Number(c.callerId) !== Number(otherUserId),
+                ),
+              );
+            } catch (e) {
+              Alert.alert('Error', 'Failed to delete all calls for user');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const renderItem = ({ item }: { item: CallResponseDto }) => {
+    const isOutgoing = currentUserId !== null && Number(item.callerId) === currentUserId;
+    const isMissed =
+      !isOutgoing &&
+      (item.status === 'MISSED' ||
+        item.status === 'REJECTED' ||
+        item.status === 'DECLINED' ||
+        item.status === 'UNANSWERED' ||
+        item.status === 'NO_ANSWER' ||
+        item.status === 'BUSY');
+    const direction = isMissed ? 'missed' : isOutgoing ? 'outgoing' : 'incoming';
+    const otherUserId = isOutgoing ? item.receiverId : item.callerId;
+    const otherUserName = isOutgoing
+      ? item.receiverName || `User #${item.receiverId}`
+      : item.callerName || `User #${item.callerId}`;
+    const isVideo = String(item.callType).toUpperCase() === 'VIDEO';
+    const displayTime = formatCallTime(item.createdAt || item.startedAt);
 
     return (
       <TouchableOpacity
@@ -99,6 +182,7 @@ const CallsHome = () => {
           },
         ]}
         activeOpacity={0.75}
+        onLongPress={() => handleDeleteCall(item)}
       >
         <View
           style={[
@@ -113,10 +197,7 @@ const CallsHome = () => {
             },
           ]}
         >
-          <Image
-            source={item.avatarUrl ? { uri: item.avatarUrl } : defaultUser}
-            style={styles.avatar}
-          />
+          <Image source={defaultUser} style={styles.avatar} />
         </View>
 
         <View style={styles.callInfo}>
@@ -127,18 +208,18 @@ const CallsHome = () => {
             ]}
             numberOfLines={1}
           >
-            {item.name}
+            {otherUserName}
           </Text>
 
           <View style={styles.metaRow}>
-            {item.direction === 'missed' ? (
+            {direction === 'missed' ? (
               <Feather
                 name="phone-missed"
                 size={13}
                 color={colors.danger}
                 style={styles.directionIcon}
               />
-            ) : item.direction === 'incoming' ? (
+            ) : direction === 'incoming' ? (
               <Feather
                 name="arrow-down-left"
                 size={14}
@@ -159,7 +240,7 @@ const CallsHome = () => {
                 { color: isMissed ? colors.danger : colors.textSecondary },
               ]}
             >
-              {item.time}
+              {displayTime}
             </Text>
           </View>
         </View>
@@ -170,10 +251,18 @@ const CallsHome = () => {
             neu.circleButton(42, { depth: 'low' }),
             { backgroundColor: colors.surfaceSubtle },
           ]}
+          onPress={() => {
+            console.log('📞 [CallsHome] Initiating call to:', otherUserName, otherUserId);
+            initiateCall({
+              receiverId: otherUserId,
+              receiverName: otherUserName,
+              callType: isVideo ? 'VIDEO' : 'AUDIO',
+            });
+          }}
           activeOpacity={0.7}
         >
           <Ionicons
-            name={item.type === 'voice' ? 'call' : 'videocam'}
+            name={!isVideo ? 'call' : 'videocam'}
             size={18}
             color={isMissed ? colors.danger : colors.primary}
           />
@@ -260,45 +349,71 @@ const CallsHome = () => {
         </View>
 
         {/* Calls List */}
-        <FlatList
-          data={filteredCalls}
-          keyExtractor={item => item.id}
-          renderItem={renderItem}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[colors.primary]}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <View style={[styles.emptyIconWell, neu.sunkenWell(76)]}>
-                <Ionicons
-                  name="call-outline"
-                  size={40}
-                  color={colors.textMuted}
-                />
+        {loading && !refreshing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={filteredCalls}
+            keyExtractor={item => String(item.id)}
+            renderItem={renderItem}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[colors.primary]}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <View style={[styles.emptyIconWell, neu.sunkenWell(76)]}>
+                  <Ionicons
+                    name="call-outline"
+                    size={40}
+                    color={colors.textMuted}
+                  />
+                </View>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                  {searchQuery ? 'No matching calls' : 'No call history'}
+                </Text>
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  {searchQuery
+                    ? 'Try searching for another contact.'
+                    : 'Your voice and video calls will appear here.'}
+                </Text>
               </View>
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                {searchQuery ? 'No matching calls' : 'No call history'}
-              </Text>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {searchQuery
-                  ? 'Try searching for another contact.'
-                  : 'Your voice and video calls will appear here.'}
-              </Text>
-            </View>
-          }
-        />
+            }
+          />
+        )}
+
+        {/* Floating Start Call Action Button */}
+        <TouchableOpacity
+          style={[
+            styles.floatingCallBtn,
+            neu.circleButton(58, { depth: 'high' }),
+            { backgroundColor: colors.primary },
+          ]}
+          onPress={() => {
+            console.log('🚀 [CallsHome] User pressed Floating Start Call button');
+            navigation.navigate('ConnectedUsers', {
+              mode: 'calls',
+              isCallMode: true,
+            });
+          }}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="call" size={24} color="#ffffff" />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
 export default CallsHome;
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -457,5 +572,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 32,
   },
+  loadingContainer: {
+    paddingTop: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
+
 

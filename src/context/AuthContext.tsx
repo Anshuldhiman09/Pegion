@@ -106,7 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             if (
               errMsg.toLowerCase().includes('token') ||
               errMsg.toLowerCase().includes('401') ||
-              errMsg.toLowerCase().includes('unauthorized')
+              errMsg.toLowerCase().includes('403') ||
+              errMsg.toLowerCase().includes('unauthorized') ||
+              errMsg.toLowerCase().includes('forbidden')
             ) {
               SocketService.disconnect();
               await AsyncStorage.multiRemove([
@@ -215,3 +217,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => React.useContext(AuthContext);
+

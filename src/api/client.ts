@@ -20,21 +20,30 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async config => {
     try {
-      const rawToken =
-        (await AsyncStorage.getItem('auth_token')) ||
-        (await AsyncStorage.getItem('authToken'));
-      if (rawToken && rawToken.trim()) {
-        const clean = rawToken.trim();
-        const bearer = clean.startsWith('Bearer ') ? clean : `Bearer ${clean}`;
+      const url = config.url || '';
+      const isPublicAuthEndpoint =
+        url.includes('/api/auth/') ||
+        url.includes('/send-otp') ||
+        url.includes('/verify-otp') ||
+        url.includes('/login') ||
+        url.includes('/register');
 
-        if (config.headers) {
-          config.headers.Authorization = bearer;
-          if (typeof config.headers.set === 'function') {
-            config.headers.set('Authorization', bearer);
+      if (!isPublicAuthEndpoint) {
+        const rawToken =
+          (await AsyncStorage.getItem('auth_token')) ||
+          (await AsyncStorage.getItem('authToken'));
+        if (rawToken && rawToken.trim()) {
+          const clean = rawToken.trim();
+          const bearer = clean.startsWith('Bearer ') ? clean : `Bearer ${clean}`;
+
+          if (config.headers) {
+            config.headers.Authorization = bearer;
+            if (typeof config.headers.set === 'function') {
+              config.headers.set('Authorization', bearer);
+            }
           }
         }
       }
-
     } catch (e) {
       console.log('Error reading auth token from storage:', e);
     }
@@ -46,7 +55,22 @@ apiClient.interceptors.request.use(
 // Response interceptor for unified response handling
 apiClient.interceptors.response.use(
   response => response,
-  error => {
+  async error => {
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+
+    // Auto-clear stale token if forbidden or unauthorized on protected routes
+    if ((status === 401 || status === 403) && !url.includes('/api/auth/')) {
+      try {
+        await AsyncStorage.multiRemove([
+          'auth_token',
+          'authToken',
+          'auth_email',
+          'userId',
+        ]);
+      } catch (e) {}
+    }
+
     const errorMsg =
       error.response?.data?.statusMsg ||
       error.response?.data?.message ||

@@ -5,6 +5,8 @@ import { StatusBar } from 'react-native';
 
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/context/AuthContext';
+import { CallProvider } from './src/context/CallContext';
+import { CallModal } from './src/components/calls/CallModal';
 import { ThemeProvider, useTheme } from './src/theme';
 import Toast from 'react-native-toast-message';
 import { getToastConfig } from './src/components/ToastConfig';
@@ -40,6 +42,7 @@ const AppContent = () => {
       />
       <NavigationContainer theme={navTheme}>
         <AppNavigator />
+        <CallModal />
         <Toast config={toastConf} />
       </NavigationContainer>
     </>
@@ -52,7 +55,9 @@ const App = () => {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <AppContent />
+          <CallProvider>
+            <AppContent />
+          </CallProvider>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>

@@ -21,6 +21,7 @@ import Toast from 'react-native-toast-message';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { userService, connectionService, ProfileData } from '../../api';
 import { useTheme, getNeumorphicStyles } from '../../theme';
+import { useCall } from '../../context/CallContext';
 import FocusAwareStatusBar from '../../components/FocusAwareStatusBar';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -33,6 +34,7 @@ const UserProfileScreen = () => {
   const route = useRoute<any>();
   const { colors, isDark } = useTheme();
   const neu = getNeumorphicStyles(isDark);
+  const { initiateCall } = useCall();
 
   const initialUser = route.params?.user;
   const userId = route.params?.userId || initialUser?.id;
@@ -537,6 +539,62 @@ const UserProfileScreen = () => {
               activeOpacity={0.85}
             >
               <Ionicons name="chatbubble-ellipses" size={22} color="#ffffff" />
+            </TouchableOpacity>
+
+            {/* Audio Call Button */}
+            <TouchableOpacity
+              style={[
+                styles.messageCircleBtn,
+                neu.circleButton(52, { depth: 'high' }),
+                {
+                  backgroundColor: isDark ? '#262c36' : '#22c55e',
+                  marginLeft: 8,
+                },
+              ]}
+              onPress={() => {
+                console.log('📞 [UserProfileScreen] User pressed Voice Call button for profile:', profile);
+                if (profile?.id) {
+                  initiateCall({
+                    receiverId: profile.id,
+                    receiverName: profile.name || profile.username || undefined,
+                    receiverAvatar: profile.profileImageUrl || profile.photo || undefined,
+                    callType: 'AUDIO',
+                  });
+                } else {
+                  console.warn('⚠️ [UserProfileScreen] Cannot start call: profile.id is missing');
+                }
+              }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="call" size={20} color="#ffffff" />
+            </TouchableOpacity>
+
+            {/* Video Call Button */}
+            <TouchableOpacity
+              style={[
+                styles.messageCircleBtn,
+                neu.circleButton(52, { depth: 'high' }),
+                {
+                  backgroundColor: isDark ? '#262c36' : '#6366f1',
+                  marginLeft: 8,
+                },
+              ]}
+              onPress={() => {
+                console.log('🎥 [UserProfileScreen] User pressed Video Call button for profile:', profile);
+                if (profile?.id) {
+                  initiateCall({
+                    receiverId: profile.id,
+                    receiverName: profile.name || profile.username || undefined,
+                    receiverAvatar: profile.profileImageUrl || profile.photo || undefined,
+                    callType: 'VIDEO',
+                  });
+                } else {
+                  console.warn('⚠️ [UserProfileScreen] Cannot start call: profile.id is missing');
+                }
+              }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="videocam" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
         </View>

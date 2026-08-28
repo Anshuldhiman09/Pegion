@@ -4,3 +4,5 @@ export * from './authService';
 export * from './userService';
 export * from './uploadService';
 export * from './connectionService';
+export * from './callApiService';
+

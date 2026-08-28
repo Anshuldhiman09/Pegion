@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
+import { useCall } from '../../context/CallContext';
 import { connectionService, userService, SearchUserItem } from '../../api';
 import { useTheme, getNeumorphicStyles } from '../../theme';
 import FocusAwareStatusBar from '../../components/FocusAwareStatusBar';
@@ -227,11 +228,19 @@ const ConnectedUsersScreen = () => {
     });
   };
 
+  const { initiateCall } = useCall();
+
   const handleStartCall = (item: SearchUserItem, type: 'voice' | 'video') => {
-    Toast.show({
-      type: 'info',
-      text1: type === 'voice' ? 'Starting Voice Call' : 'Starting Video Call',
-      text2: `Calling ${item.name || item.username}...`,
+    console.log(`📞 [ConnectedUsers] User tapped ${type} call for user:`, item);
+    if (!item.id) {
+      console.warn('⚠️ [ConnectedUsers] Cannot start call: item.id is missing');
+      return;
+    }
+    initiateCall({
+      receiverId: item.id,
+      receiverName: item.name || item.username,
+      receiverAvatar: item.profileImageUrl,
+      callType: type === 'video' ? 'VIDEO' : 'AUDIO',
     });
   };
 

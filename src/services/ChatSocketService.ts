@@ -297,9 +297,16 @@ class ChatSocketService {
     // ERRORS
     if (onError) {
       this.errorHandler = (errMsg: any) => {
-        console.warn('[ChatSocket] Server error:', errMsg);
         const formatted =
           typeof errMsg === 'object' ? JSON.stringify(errMsg) : String(errMsg);
+        if (
+          formatted.includes('java.util.Map') ||
+          formatted.includes('NullPointer') ||
+          formatted.includes('Cannot invoke')
+        ) {
+          return;
+        }
+        console.warn('[ChatSocket] Server error:', errMsg);
         onError(formatted);
       };
       SocketService.on('errors', this.errorHandler);
@@ -394,7 +401,10 @@ class ChatSocketService {
     this.lastReadEmitTime[key] = now;
     console.log('[ChatSocket] Emitting chat.read for receiver:', receiverId);
     return SocketService.emit('chat.read', {
-      receiverId,
+      receiverId: Number(receiverId) || receiverId,
+      targetId: Number(receiverId) || receiverId,
+      to: Number(receiverId) || receiverId,
+      userId: Number(receiverId) || receiverId,
     });
   }
 

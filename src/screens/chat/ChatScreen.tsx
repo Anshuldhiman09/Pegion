@@ -41,6 +41,7 @@ import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
+import { useCall } from '../../context/CallContext';
 import { uploadService } from '../../api';
 import ChatSocketService, {
   ChatMessagePayload,
@@ -230,6 +231,7 @@ const ChatScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user } = useContext(AuthContext);
+  const { initiateCall } = useCall();
   const { colors, isDark } = useTheme();
   const neu = getNeumorphicStyles(isDark);
 
@@ -1756,9 +1758,62 @@ const ChatScreen = () => {
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={[styles.headerActionBtn, neu.circleButton(38, { depth: 'low' })]}
+              onPress={() => {
+                console.log('📞 [ChatScreen] User pressed Voice Call button for:', {
+                  otherUserId,
+                  otherUserName,
+                });
+                if (otherUserId) {
+                  initiateCall({
+                    receiverId: otherUserId,
+                    receiverName: otherUserName,
+                    receiverAvatar: otherUserProfileImage,
+                    callType: 'AUDIO',
+                  });
+                } else {
+                  console.warn('⚠️ [ChatScreen] Cannot start call: otherUserId is missing');
+                  Toast.show({
+                    type: 'info',
+                    text1: 'Cannot start call',
+                    text2: 'User information is missing.',
+                  });
+                }
+              }}
               activeOpacity={0.7}
             >
               <Ionicons name="call" size={17} color={colors.text} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.headerActionBtn,
+                neu.circleButton(38, { depth: 'low' }),
+                { marginLeft: 6 },
+              ]}
+              onPress={() => {
+                console.log('🎥 [ChatScreen] User pressed Video Call button for:', {
+                  otherUserId,
+                  otherUserName,
+                });
+                if (otherUserId) {
+                  initiateCall({
+                    receiverId: otherUserId,
+                    receiverName: otherUserName,
+                    receiverAvatar: otherUserProfileImage,
+                    callType: 'VIDEO',
+                  });
+                } else {
+                  console.warn('⚠️ [ChatScreen] Cannot start call: otherUserId is missing');
+                  Toast.show({
+                    type: 'info',
+                    text1: 'Cannot start call',
+                    text2: 'User information is missing.',
+                  });
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="videocam" size={18} color={colors.text} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2149,6 +2204,33 @@ const ChatScreen = () => {
               { backgroundColor: colors.surface, borderColor: colors.border },
             ]}
           >
+            <TouchableOpacity
+              style={styles.optionMenuItem}
+              onPress={() => {
+                setShowOptionsMenu(false);
+                if (otherUserId) {
+                  console.log('🎥💬 [ChatScreen] User pressed 1-on-1 Video Chat button');
+                  initiateCall({
+                    receiverId: otherUserId,
+                    receiverName: otherUserName,
+                    receiverAvatar: otherUserProfileImage,
+                    callType: 'VIDEO_CHAT',
+                  });
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.optionIconBox, { backgroundColor: '#6366f118' }]}>
+                <Ionicons name="chatbubbles" size={20} color="#6366f1" />
+              </View>
+              <View style={styles.optionTextBox}>
+                <Text style={[styles.optionMenuTitle, { color: colors.text }]}>1-on-1 Video Chat</Text>
+                <Text style={[styles.optionMenuSubtitle, { color: colors.textSecondary }]}>Camera + live floating chat</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={[styles.optionDivider, { backgroundColor: colors.border }]} />
+
             <TouchableOpacity
               style={styles.optionMenuItem}
               onPress={() => {

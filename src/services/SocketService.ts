@@ -175,15 +175,19 @@ class SocketService {
     event: string,
     handler?: (...args: any[]) => void,
   ): void {
-    if (handler) {
+    if (typeof handler === 'function') {
       this.listeners.get(event)?.delete(handler);
       if (this.listeners.get(event)?.size === 0) {
         this.listeners.delete(event);
       }
-      this.socket?.off(event, handler);
+      try {
+        this.socket?.off(event, handler);
+      } catch (e) {}
     } else {
       this.listeners.delete(event);
-      this.socket?.off(event);
+      try {
+        this.socket?.off(event);
+      } catch (e) {}
     }
   }
 
@@ -193,15 +197,23 @@ class SocketService {
   onAny(
     handler: (event: string, ...args: any[]) => void,
   ): void {
-    this.anyListeners.add(handler);
-    this.socket?.onAny(handler);
+    if (typeof handler === 'function') {
+      this.anyListeners.add(handler);
+      try {
+        this.socket?.onAny(handler);
+      } catch (e) {}
+    }
   }
 
   offAny(
-    handler: (event: string, ...args: any[]) => void,
+    handler?: (event: string, ...args: any[]) => void,
   ): void {
-    this.anyListeners.delete(handler);
-    this.socket?.offAny(handler);
+    if (typeof handler === 'function') {
+      this.anyListeners.delete(handler);
+      try {
+        this.socket?.offAny(handler);
+      } catch (e) {}
+    }
   }
 
   emit(
